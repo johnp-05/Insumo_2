@@ -44,7 +44,7 @@ export default function LoginScreen() {
           <View className="w-24 h-24 rounded-full bg-emerald-500 items-center justify-center mb-6">
             <Text className="text-3xl">🎵</Text>
           </View>
-          <Text className="text-5xl font-bold text-white mb-2">Spotify Clone</Text>
+          <Text className="text-5xl font-bold text-white mb-2">Soundify</Text>
           <Text className="text-gray-400 text-base">Sign in to continue</Text>
         </View>
 
