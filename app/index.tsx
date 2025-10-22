@@ -2,29 +2,56 @@ import "@/global.css";
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import EmailInput from '@/components/ui/EmailInput';
+import PasswordInput from '@/components/ui/PasswordInput';
+import { getUsernameFromEmail } from '@/components/ui/EmailUtils';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isEmailValid, setIsEmailValid] = useState(false);
+  const [isPasswordValid, setIsPasswordValid] = useState(false);
   const router = useRouter();
 
+  /**
+   * Handle login with complete validation
+   * 
+   * Valida tanto email como contraseña antes de permitir login
+   */
   const handleLogin = () => {
     console.log('🔵 Login pressed');
-    console.log('Email:', email);
-    console.log('Password:', password);
+    console.log('Email:', email, '- Valid:', isEmailValid);
+    console.log('Password:', password ? '***' : '(empty)', '- Valid:', isPasswordValid);
     
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    // Validar email
+    if (!isEmailValid) {
+      Alert.alert(
+        'Email Inválido', 
+        'Por favor ingresa un email válido antes de continuar.'
+      );
       return;
     }
     
-    console.log('🟢 Navigating to home...');
-    router.push(`/home?username=${email}`);
+    // Validar contraseña
+    if (!isPasswordValid) {
+      Alert.alert(
+        'Contraseña Inválida',
+        'Por favor ingresa una contraseña que cumpla los requisitos de seguridad.'
+      );
+      return;
+    }
+    
+    // Extraer solo el nombre de usuario
+    const username = getUsernameFromEmail(email);
+    
+    console.log('🟢 Validation passed, navigating to home...');
+    console.log('👤 Username extracted:', username);
+    router.push(`/home?username=${username}`);
   };
 
   const handleRegister = () => {
     console.log('🔵 Register pressed - disabled');
-    // router.push('/register'); // Deshabilitado
+    // router.push('/register'); // Disabled for now
   };
 
   const handleError405 = () => {
@@ -48,26 +75,32 @@ export default function LoginScreen() {
           <Text className="text-gray-400 text-base">Sign in to continue</Text>
         </View>
 
-        {/* Email Input */}
+        {/* 
+          Email Input with Validation
+          
+          Notice how we:
+          1. Pass the value and onChangeText (controlled input)
+          2. Get validation status via onValidationChange callback
+          3. Enable blur validation (validates when user leaves field)
+          
+          The EmailInput handles all the validation logic internally,
+          keeping this parent component clean and focused
+        */}
         <View className="mb-4">
-          <View className="flex-row items-center bg-slate-800/50 rounded-2xl px-5 py-1 border-2 border-slate-700">
-            <View className="mr-4">
-              <Text className="text-2xl opacity-70">📧</Text>
-            </View>
-            <TextInput
-              className="flex-1 text-white text-base py-4"
-              placeholder="Email o Username"
-              placeholderTextColor="#94a3b8"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
+          <EmailInput
+            value={email}
+            onChangeText={setEmail}
+            onValidationChange={setIsEmailValid}
+            validateOnBlur={true}
+          />
         </View>
         
-        {/* Password Input */}
+        {/* 
+          Password Input (not yet validated)
+          
+          You could create a similar PasswordInput component
+          using the same pattern we used for EmailInput
+        */}
         <View className="mb-4">
           <View className="flex-row items-center bg-slate-800/50 rounded-2xl px-5 py-1 border-2 border-slate-700">
             <View className="mr-4">
@@ -90,16 +123,35 @@ export default function LoginScreen() {
           <Text className="text-emerald-400 text-sm font-medium">Forgot Password?</Text>
         </TouchableOpacity>
 
-        {/* Sign In Button */}
+        {/* 
+          Sign In Button
+          
+          Notice the visual feedback: the button appears slightly
+          disabled (with opacity) when email is invalid, giving
+          users a visual clue about the form state
+        */}
         <TouchableOpacity 
           onPress={handleLogin}
           activeOpacity={0.8}
-          className="bg-emerald-500 rounded-2xl py-5 px-8 items-center justify-center mb-4"
+          className={`rounded-2xl py-5 px-8 items-center justify-center mb-4 ${
+            isEmailValid && password 
+              ? 'bg-emerald-500' 
+              : 'bg-emerald-500/50'
+          }`}
         >
           <Text className="text-white text-lg font-bold tracking-wide">
             Sign In
           </Text>
         </TouchableOpacity>
+
+        {/* Form Status Indicator */}
+        {!isEmailValid && email && (
+          <View className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4">
+            <Text className="text-amber-400 text-xs text-center">
+              Please enter a valid email to continue
+            </Text>
+          </View>
+        )}
 
         {/* Register Link */}
         <View className="flex-row justify-center mt-4">
@@ -109,7 +161,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Error 405 Button */}
+        {/* Error 405 Test Button */}
         <TouchableOpacity 
           onPress={handleError405}
           activeOpacity={0.8}
