@@ -1,0 +1,239 @@
+import { View, TextInput, Text, Animated, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { validatePassword } from '@/lib/schemas/LoginValidation';
+import { getPasswordErrorMessage } from '@/lib/constants/ErrorMessages';
+
+interface PasswordInputProps {
+  value: string;
+  onChangeText: (text: string) => void;
+  onValidationChange?: (isValid: boolean) => void;
+  validateOnBlur?: boolean;
+  showErrorImmediately?: boolean;
+  placeholder?: string;
+}
+
+/**
+ * PasswordInput Component con Validación Robusta
+ * 
+ * Características:
+ * - Validación de requisitos de seguridad
+ * - Mostrar/ocultar contraseña
+ * - Indicadores visuales de fortaleza
+ * - Mensajes de error amigables
+ */
+const PasswordInput = ({ 
+  value, 
+  onChangeText,
+  onValidationChange,
+  validateOnBlur = true,
+  showErrorImmediately = false,
+  placeholder = 'Contraseña',
+}: PasswordInputProps) => {
+  const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  
+  const errorOpacity = useRef(new Animated.Value(0)).current;
+
+  /**
+   * Validar la contraseña
+   */
+  const handleValidation = () => {
+    const result = validatePassword(value);
+    
+    if (result.success) {
+      setError(null);
+      onValidationChange?.(true);
+    } else {
+      const errorMessage = getPasswordErrorMessage(result.error || '');
+      setError(errorMessage);
+      onValidationChange?.(false);
+    }
+  };
+
+  /**
+   * Calcular fortaleza de la contraseña
+   * Retorna: 'weak', 'medium', 'strong'
+   */
+  const getPasswordStrength = (): 'weak' | 'medium' | 'strong' => {
+    if (!value) return 'weak';
+    
+    let strength = 0;
+    
+    // Criterios de fortaleza
+    if (value.length >= 8) strength++;
+    if (value.length >= 12) strength++;
+    if (/[A-Z]/.test(value)) strength++;
+    if (/[a-z]/.test(value)) strength++;
+    if (/[0-9]/.test(value)) strength++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(value)) strength++;
+    
+    if (strength <= 2) return 'weak';
+    if (strength <= 4) return 'medium';
+    return 'strong';
+  };
+
+  /**
+   * Obtener color según fortaleza
+   */
+  const getStrengthColor = () => {
+    const strength = getPasswordStrength();
+    switch (strength) {
+      case 'weak': return 'bg-red-500';
+      case 'medium': return 'bg-yellow-500';
+      case 'strong': return 'bg-emerald-500';
+    }
+  };
+
+  /**
+   * Obtener texto de fortaleza
+   */
+  const getStrengthText = () => {
+    const strength = getPasswordStrength();
+    switch (strength) {
+      case 'weak': return 'Débil';
+      case 'medium': return 'Media';
+      case 'strong': return 'Fuerte';
+    }
+  };
+
+  /**
+   * Animar error
+   */
+  useEffect(() => {
+    if (error) {
+      Animated.timing(errorOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(errorOpacity, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [error]);
+
+  /**
+   * Handle blur
+   */
+  const handleBlur = () => {
+    setTouched(true);
+    if (validateOnBlur) {
+      handleValidation();
+    }
+  };
+
+  /**
+   * Handle text change
+   */
+  const handleTextChange = (text: string) => {
+    onChangeText(text);
+    
+    if (error && touched) {
+      setError(null);
+    }
+    
+    if (showErrorImmediately && touched) {
+      setTimeout(() => handleValidation(), 500);
+    }
+  };
+
+  // Determinar color del borde
+  const borderColor = error 
+    ? 'border-red-500' 
+    : touched && !error && value 
+    ? 'border-emerald-500' 
+    : 'border-slate-700';
+
+  return (
+    <View className="w-full">
+      {/* Input Container */}
+      <View className={`flex-row items-center bg-slate-800/50 rounded-2xl px-5 py-1 border-2 ${borderColor}`}>
+        <View className="mr-4">
+          <Text className="text-2xl opacity-70">🔒</Text>
+        </View>
+        <TextInput
+          className="flex-1 text-white text-base py-4"
+          placeholder={placeholder}
+          placeholderTextColor="#94a3b8"
+          value={value}
+          onChangeText={handleTextChange}
+          onBlur={handleBlur}
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        
+        {/* Toggle Show/Hide Password */}
+        <TouchableOpacity 
+          onPress={() => setShowPassword(!showPassword)}
+          className="ml-2"
+          activeOpacity={0.7}
+        >
+          <Text className="text-xl">
+            {showPassword ? '👁️' : '👁️‍🗨️'}
+          </Text>
+        </TouchableOpacity>
+        
+        {/* Validation Status */}
+        {touched && !error && value && (
+          <Text className="text-emerald-400 text-xl ml-2">✓</Text>
+        )}
+        {error && (
+          <Text className="text-red-400 text-xl ml-2">⚠</Text>
+        )}
+      </View>
+
+      {/* Password Strength Indicator */}
+      {value && touched && !error && (
+        <View className="mt-2 px-2">
+          <View className="flex-row items-center">
+            <Text className="text-gray-400 text-xs mr-2">Fortaleza:</Text>
+            <View className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <View 
+                className={`h-full ${getStrengthColor()}`}
+                style={{ 
+                  width: getPasswordStrength() === 'weak' ? '33%' : 
+                         getPasswordStrength() === 'medium' ? '66%' : '100%' 
+                }}
+              />
+            </View>
+            <Text className={`text-xs ml-2 ${
+              getPasswordStrength() === 'weak' ? 'text-red-400' :
+              getPasswordStrength() === 'medium' ? 'text-yellow-400' :
+              'text-emerald-400'
+            }`}>
+              {getStrengthText()}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <Animated.View 
+          style={{ opacity: errorOpacity }}
+          className="mt-2 px-2"
+        >
+          <View className="flex-row items-center">
+            <Text className="text-red-400 text-sm">• {error}</Text>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* Password Requirements (when typing) */}
+      {value && !error && touched && (
+        <View className="mt-2 px-2">
+          <Text className="text-emerald-400 text-xs">
+            ✓ Cumple con todos los requisitos
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+export default PasswordInput;
