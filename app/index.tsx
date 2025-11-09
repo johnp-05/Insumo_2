@@ -3,31 +3,8 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Text, TouchableOpacity, View } from 'react-native';
 import EmailInput from '@/components/ui/EmailInput';
-import PasswordInput from '@/components/ui/PasswordInput';
+import SimplePasswordInput from '@/components/ui/SimplePasswordInput';
 import { getUsernameFromEmail } from '@/components/ui/EmailUtils';
-
-import { validatePassword } from '@/lib/schemas/LoginValidation';
-import { useEffect } from 'react';
-
-// Luego, DENTRO del componente LoginScreen, agrega este useEffect al inicio:
-
-useEffect(() => {
-  // TEST DIRECTO DE LA CONTRASEÑA
-  const testPassword = 'Code*4567';
-  
-  console.log('========== INICIO TEST ==========');
-  console.log('Testing password:', testPassword);
-  console.log('Length:', testPassword.length, '- Required: >= 8');
-  console.log('Has uppercase:', /[A-Z]/.test(testPassword), '- Required: true');
-  console.log('Has lowercase:', /[a-z]/.test(testPassword), '- Required: true');
-  console.log('Has number:', /[0-9]/.test(testPassword), '- Required: true');
-  console.log('Has special (any non-alphanumeric):', /[^A-Za-z0-9]/.test(testPassword), '- Required: true');
-  
-  const result = validatePassword(testPassword);
-  console.log('Final validation result:', JSON.stringify(result, null, 2));
-  console.log('========== FIN TEST ==========');
-}, []);
-
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -38,8 +15,6 @@ export default function LoginScreen() {
 
   /**
    * Handle login with complete validation
-   * 
-   * Valida tanto email como contraseña antes de permitir login
    */
   const handleLogin = () => {
     console.log('🔵 Login pressed');
@@ -72,9 +47,12 @@ export default function LoginScreen() {
     router.push(`/home?username=${username}`);
   };
 
+  /**
+   * Navigate to register screen
+   */
   const handleRegister = () => {
-    console.log('🔵 Register pressed - disabled');
-    // router.push('/register'); // Disabled for now
+    console.log('🔵 Navigating to register screen...');
+    router.push('/register');
   };
 
   const handleError405 = () => {
@@ -98,17 +76,7 @@ export default function LoginScreen() {
           <Text className="text-gray-400 text-base">Sign in to continue</Text>
         </View>
 
-        {/* 
-          Email Input with Validation
-          
-          Notice how we:
-          1. Pass the value and onChangeText (controlled input)
-          2. Get validation status via onValidationChange callback
-          3. Enable blur validation (validates when user leaves field)
-          
-          The EmailInput handles all the validation logic internally,
-          keeping this parent component clean and focused
-        */}
+        {/* Email Input with Validation */}
         <View className="mb-4">
           <EmailInput
             value={email}
@@ -118,21 +86,15 @@ export default function LoginScreen() {
           />
         </View>
         
-        {/* 
-          Password Input with Validation
-          
-          Now using the PasswordInput component with full validation,
-          strength indicator, and show/hide functionality
-        */}
-       <View className="mb-4">
-       <PasswordInput
-          value={password}
-          onChangeText={setPassword}
-          onValidationChange={setIsPasswordValid}
-          placeholder="Password"
-        />
-      </View>
-
+        {/* Password Input - Simple validation for login */}
+        <View className="mb-4">
+          <SimplePasswordInput
+            value={password}
+            onChangeText={setPassword}
+            onValidationChange={setIsPasswordValid}
+            placeholder="Password"
+          />
+        </View>
 
         {/* Forgot Password */}
         <TouchableOpacity className="self-end mb-6" activeOpacity={0.7}>
@@ -163,10 +125,10 @@ export default function LoginScreen() {
           </View>
         )}
         
-        {isEmailValid && !isPasswordValid && password && (
+        {isEmailValid && !isPasswordValid && password.length === 0 && (
           <View className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-4">
             <Text className="text-amber-400 text-xs text-center">
-              Please ensure your password meets security requirements
+              Please enter your password to continue
             </Text>
           </View>
         )}
@@ -174,8 +136,8 @@ export default function LoginScreen() {
         {/* Register Link */}
         <View className="flex-row justify-center mt-4">
           <Text className="text-gray-400 text-base">Don't have an account? </Text>
-          <TouchableOpacity onPress={handleRegister} activeOpacity={0.7} disabled={true}>
-            <Text className="text-emerald-500 rounded-2xl text-base font-semibold">Sign Up</Text>
+          <TouchableOpacity onPress={handleRegister} activeOpacity={0.7}>
+            <Text className="text-emerald-500 text-base font-semibold">Sign Up</Text>
           </TouchableOpacity>
         </View>
 
