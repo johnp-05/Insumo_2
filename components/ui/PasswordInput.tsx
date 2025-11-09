@@ -1,5 +1,5 @@
 import { View, TextInput, Text, Animated, TouchableOpacity } from 'react-native';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { validatePassword } from '@/lib/schemas/LoginValidation';
 import { getPasswordErrorMessage } from '@/lib/constants/ErrorMessages';
 
@@ -38,18 +38,31 @@ const PasswordInput = ({
   /**
    * Validar la contraseña
    */
-  const handleValidation = () => {
+  const handleValidation = useCallback(() => {
+    if (!value) return;
+    
+    // 🔍 DEBUG: Ver qué está pasando
+    console.log('🔍 Validating password:', value);
+    console.log('🔍 Length:', value.length);
+    console.log('🔍 Has uppercase:', /[A-Z]/.test(value));
+    console.log('🔍 Has lowercase:', /[a-z]/.test(value));
+    console.log('🔍 Has number:', /[0-9]/.test(value));
+    console.log('🔍 Has special char:', /[^A-Za-z0-9]/.test(value));
+    
     const result = validatePassword(value);
+    console.log('🔍 Validation result:', result);
     
     if (result.success) {
       setError(null);
       onValidationChange?.(true);
+      console.log('🔍 ✅ Password is VALID');
     } else {
       const errorMessage = getPasswordErrorMessage(result.error || '');
       setError(errorMessage);
       onValidationChange?.(false);
+      console.log('🔍 ❌ Password is INVALID:', errorMessage);
     }
-  };
+  }, [value, onValidationChange]);
 
   /**
    * Calcular fortaleza de la contraseña
@@ -66,7 +79,7 @@ const PasswordInput = ({
     if (/[A-Z]/.test(value)) strength++;
     if (/[a-z]/.test(value)) strength++;
     if (/[0-9]/.test(value)) strength++;
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(value)) strength++;
+    if (/[^A-Za-z0-9]/.test(value)) strength++;
     
     if (strength <= 2) return 'weak';
     if (strength <= 4) return 'medium';
@@ -114,14 +127,29 @@ const PasswordInput = ({
         useNativeDriver: true,
       }).start();
     }
-  }, [error]);
+  }, [error, errorOpacity]);
+
+  /**
+   * Validar automáticamente cuando cambia el valor (si ya fue touched)
+   */
+  useEffect(() => {
+    if (touched && value) {
+      const timer = setTimeout(() => {
+        handleValidation();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    } else if (touched && !value) {
+      onValidationChange?.(false);
+    }
+  }, [value, touched, handleValidation, onValidationChange]);
 
   /**
    * Handle blur
    */
   const handleBlur = () => {
     setTouched(true);
-    if (validateOnBlur) {
+    if (validateOnBlur && value) {
       handleValidation();
     }
   };
@@ -135,10 +163,6 @@ const PasswordInput = ({
     if (error && touched) {
       setError(null);
     }
-    
-    if (showErrorImmediately && touched) {
-      setTimeout(() => handleValidation(), 500);
-    }
   };
 
   // Determinar color del borde
@@ -150,7 +174,6 @@ const PasswordInput = ({
 
   return (
     <View className="w-full">
-      {/* Input Container */}
       <View className={`flex-row items-center bg-slate-800/50 rounded-2xl px-5 py-1 border-2 ${borderColor}`}>
         <View className="mr-4">
           <Text className="text-2xl opacity-70">🔒</Text>
@@ -167,7 +190,6 @@ const PasswordInput = ({
           autoCorrect={false}
         />
         
-        {/* Toggle Show/Hide Password */}
         <TouchableOpacity 
           onPress={() => setShowPassword(!showPassword)}
           className="ml-2"
@@ -178,7 +200,6 @@ const PasswordInput = ({
           </Text>
         </TouchableOpacity>
         
-        {/* Validation Status */}
         {touched && !error && value && (
           <Text className="text-emerald-400 text-xl ml-2">✓</Text>
         )}
@@ -187,8 +208,7 @@ const PasswordInput = ({
         )}
       </View>
 
-      {/* Password Strength Indicator */}
-      {value && touched && !error && (
+      {value && touched && !error ? (
         <View className="mt-2 px-2">
           <View className="flex-row items-center">
             <Text className="text-gray-400 text-xs mr-2">Fortaleza:</Text>
@@ -210,28 +230,24 @@ const PasswordInput = ({
             </Text>
           </View>
         </View>
-      )}
+      ) : null}
 
-      {/* Error Message */}
-      {error && (
+      {error ? (
         <Animated.View 
           style={{ opacity: errorOpacity }}
           className="mt-2 px-2"
         >
-          <View className="flex-row items-center">
-            <Text className="text-red-400 text-sm">• {error}</Text>
-          </View>
+          <Text className="text-red-400 text-sm">• {error}</Text>
         </Animated.View>
-      )}
+      ) : null}
 
-      {/* Password Requirements (when typing) */}
-      {value && !error && touched && (
+      {value && !error && touched ? (
         <View className="mt-2 px-2">
           <Text className="text-emerald-400 text-xs">
             ✓ Cumple con todos los requisitos
           </Text>
         </View>
-      )}
+      ) : null}
     </View>
   );
 };
