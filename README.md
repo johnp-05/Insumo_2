@@ -5,7 +5,7 @@ Una aplicación de streaming de música moderna construida con React Native, Exp
 <div align="center">
   
   <!-- Opción 1: Si subiste a assets/ -->
-  ![App Demo](./assets/demo.gif)
+  ![App Demo](./assets/images/demo.gif)
   
   <!-- Opción 2: Si usas Imgur (reemplaza con tu URL) -->
   <!-- ![App Demo](https://i.imgur.com/TU_CODIGO.gif) -->
